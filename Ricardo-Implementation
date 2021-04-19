@@ -1,0 +1,147 @@
+#include <Wire.h>
+// Library Needed for the LCD display used in the lab
+#include <LiquidCrystal.h>
+
+// External library used for the Real Time Clock
+// Used for functions such as .begin and .adjust
+#include "RTClib.h"
+
+// RTC object for getting the time from the RTC
+RTC_DS1307 rtc;
+
+// Pins used for the LCD to work properly
+LiquidCrystal lcd(23, 25, 27, 29, 31, 33);
+
+// Gotton from Lesson 29, DC motors
+// Pins connected to L329D
+#define ENABLE 5      //Fan enable
+#define DIRA 3        //Fan direction CW
+#define DIRB 4        //Fan direction CCW
+
+const int button = 2; 
+int counter = 0;
+int FanSpeed = 0;
+int start = 0;
+
+void setMotorDirection(int state) {
+
+// Removed since this would break the program, intent was to check if the button was pressed
+// or not 
+ // if (!state){
+  //  while (!state);
+  //  counter++;
+  //  }
+
+  if (counter % 2 ==  0){
+    digitalWrite(DIRA, HIGH);
+    digitalWrite(DIRB, LOW);
+    lcd.setCursor(0, 1);
+    lcd.print("Dir: cw");
+  }
+  else {
+    digitalWrite(DIRA, LOW);
+    digitalWrite(DIRB, HIGH);
+    lcd.setCursor(0, 1);
+    lcd.print("Dir: ccw");
+  }
+}
+
+void delayed(void){
+int i;
+for (i = 0; i < 1150; i++)
+return;
+}
+
+void delay_routine(void){
+int i, j;
+for (i = 0; i< 255; i++)
+for (j = 0; j < 255; j++);
+return;
+}
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(button, INPUT_PULLUP);
+  pinMode(ENABLE, OUTPUT);
+  pinMode(DIRA, OUTPUT);
+  pinMode(DIRB, OUTPUT);
+  lcd.begin(16, 2);
+  rtc.begin();
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+}
+
+void loop() {
+
+  int state;
+  state = digitalRead(button);
+
+  DateTime now = rtc.now();
+  Serial.print("Time: ");
+  Serial.print(now.hour(), DEC);
+  Serial.print(':');
+  Serial.print(now.minute(), DEC);
+  Serial.print(':');
+  Serial.print(now.second(), DEC);
+  Serial.println();
+  Serial.print(' ');
+
+  lcd.setCursor(0, 0);
+  lcd.print("Time: ");
+  lcd.print(now.hour());
+  lcd.print(':');
+  lcd.print(now.minute());
+  lcd.print(':');
+  lcd.print(now.second());
+  lcd.println(' ');
+
+delayed;
+delay_routine;
+
+if (start == 0) {
+  lcd.setCursor(0, 1);
+  lcd.print("Dir:n/a");
+  lcd.setCursor(9, 1);
+  lcd.print("Rpm:n/a");
+  start = 1;
+  }
+
+delay_routine;
+
+// Loop used to change fan to full speed
+if (now.second() == 00)
+{   
+  FanSpeed = HIGH;
+  digitalWrite(ENABLE, FanSpeed);
+  setMotorDirection(state);
+  lcd.setCursor(9, 1);
+  lcd.print("Rpm:Full");
+}
+
+// Loop used to chnage fan to three fourths speed
+if (now.second() == 10){
+  FanSpeed = 190;
+  analogWrite(ENABLE, FanSpeed);
+  setMotorDirection(state);         
+  lcd.setCursor(9, 1);
+  lcd.print("Rpm: .75");
+}
+
+// Loop used to turn motor at half speed
+if (now.second() == 20){
+  FanSpeed = 128;
+  analogWrite(ENABLE, FanSpeed); 
+  setMotorDirection(state);          
+  lcd.setCursor(9, 1);
+  lcd.print("Rpm: .5");
+ }
+
+// Loop used to turn off the fan
+if ( now.second() == 30 && now.second() <= 59){
+  FanSpeed = LOW;
+  analogWrite(ENABLE, FanSpeed);           
+  lcd.setCursor(0, 1);
+  lcd.print("Dir:off");
+  lcd.setCursor(9, 1);
+  lcd.print("Rpm:off");
+ }
+}
